@@ -156,41 +156,75 @@ fun HomeScreen(
                 }
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
+                    // Live RTC Streaming Badge Button
+                    Row(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(Color(0x33FF007F))
+                            .border(1.dp, NeonPink.copy(alpha = 0.7f), RoundedCornerShape(16.dp))
+                            .clickable { onOpenAgoraLive() }
+                            .padding(horizontal = 8.dp, vertical = 5.dp)
+                            .testTag("agora_live_shortcut_button"),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Sensors,
+                            contentDescription = "Live RTC",
+                            tint = NeonPink,
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = "LIVE",
+                            color = NeonPink,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 11.sp
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.width(6.dp))
+
                     // Admin Console Shortcut
-                    IconButton(
-                        onClick = onOpenAdminPanel,
-                        modifier = Modifier.testTag("admin_panel_button")
+                    Box(
+                        modifier = Modifier
+                            .size(34.dp)
+                            .clip(CircleShape)
+                            .background(BrandDarkCard)
+                            .border(1.dp, NeonCyan.copy(alpha = 0.5f), CircleShape)
+                            .clickable { onOpenAdminPanel() }
+                            .testTag("admin_panel_button"),
+                        contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = Icons.Default.AdminPanelSettings,
                             contentDescription = "Admin Console",
-                            tint = NeonCyan
+                            tint = NeonCyan,
+                            modifier = Modifier.size(18.dp)
                         )
                     }
 
-                    // Agora Real-Time Streaming Shortcut
-                    IconButton(
-                        onClick = onOpenAgoraLive,
-                        modifier = Modifier.testTag("agora_live_shortcut_button")
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Sensors,
-                            contentDescription = "Agora Live RTC",
-                            tint = NeonPink
-                        )
-                    }
+                    Spacer(modifier = Modifier.width(6.dp))
 
                     // Search toggle
-                    IconButton(
-                        onClick = { isSearchActive = !isSearchActive },
-                        modifier = Modifier.testTag("search_toggle_button")
+                    Box(
+                        modifier = Modifier
+                            .size(34.dp)
+                            .clip(CircleShape)
+                            .background(BrandDarkCard)
+                            .border(1.dp, if (isSearchActive) NeonPink else Color(0xFF2B294A), CircleShape)
+                            .clickable { isSearchActive = !isSearchActive }
+                            .testTag("search_toggle_button"),
+                        contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = Icons.Default.Search,
                             contentDescription = "Search",
-                            tint = if (isSearchActive) NeonPink else TextPrimary
+                            tint = if (isSearchActive) NeonPink else TextPrimary,
+                            modifier = Modifier.size(18.dp)
                         )
                     }
+
+                    Spacer(modifier = Modifier.width(8.dp))
 
                     // Coins wallet chip
                     Row(

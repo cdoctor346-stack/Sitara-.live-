@@ -22,9 +22,14 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.automirrored.filled.VolumeUp
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CardGiftcard
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
@@ -32,7 +37,6 @@ import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.MicOff
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material.icons.filled.VideocamOff
 import androidx.compose.material3.AlertDialog
@@ -106,6 +110,7 @@ fun GuestRoomSeatingScreen(
     coinsBalance: Int,
     onCoinsDeducted: (Int) -> Unit,
     onTopUpCoins: () -> Unit,
+    onNavigateBack: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     // 1 Host + 8 Guest Seats
@@ -150,7 +155,7 @@ fun GuestRoomSeatingScreen(
     val chatMessages = remember {
         mutableStateListOf(
             ChatMessage(UUID.randomUUID().toString(), "LivePK", "Welcome to the 8-Guest Audio/Video Lounge! 🎙️", isModerator = true),
-            ChatMessage(UUID.randomUUID().toString(), "Maya Plays", "Hey everyone! Seats 3, 4, 6, and 8 are open. Tap to take seat!", isStreamer = true)
+            ChatMessage(UUID.randomUUID().toString(), "Sitara Streamer", "Seats 1 through 8 are open! Tap '+ JOIN' on any chair to speak.", isStreamer = true)
         )
     }
     var chatInput by remember { mutableStateOf("") }
@@ -184,29 +189,50 @@ fun GuestRoomSeatingScreen(
                 .padding(horizontal = 14.dp, vertical = 10.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Header with PK Battle toggle & title
+            // Top Header: Back Button, Room Title & PK Battle Button
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Spacer(modifier = Modifier.width(36.dp))
+                IconButton(
+                    onClick = onNavigateBack,
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clip(CircleShape)
+                        .background(Color(0x33FFFFFF))
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Back",
+                        tint = Color.White
+                    )
+                }
+
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
-                        text = "Guest Room Seating Plan",
+                        text = "Sitara Live Lounge 🎙️",
                         color = Color.White,
-                        fontSize = 18.sp,
+                        fontSize = 17.sp,
                         fontWeight = FontWeight.Black,
                         letterSpacing = 0.5.sp
                     )
+                    Text(
+                        text = "8 Guest Seats Open • Tap + to Speak",
+                        color = NeonCyan,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Medium
+                    )
                 }
+
                 Button(
                     onClick = { isPkActive = !isPkActive },
                     colors = ButtonDefaults.buttonColors(containerColor = if (isPkActive) Color(0xFFEF4444) else Color(0xFF7C3AED)),
                     modifier = Modifier.height(32.dp),
-                    shape = RoundedCornerShape(16.dp)
+                    shape = RoundedCornerShape(16.dp),
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 2.dp)
                 ) {
-                    Text(if (isPkActive) "🛑 End PK" else "⚔️ PK", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Text(if (isPkActive) "🛑 End PK" else "⚔️ PK Battle", fontSize = 11.sp, fontWeight = FontWeight.Bold)
                 }
             }
 
@@ -318,8 +344,25 @@ fun GuestRoomSeatingScreen(
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.Top
                             ) {
-                                // Left Corner Potted Plant
-                                PottedPlantIcon()
+                                // Left Stage Audio Monitor Pill
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(Color(0xFF132242))
+                                        .border(1.dp, Color(0xFF243B6B), RoundedCornerShape(8.dp))
+                                        .padding(horizontal = 6.dp, vertical = 4.dp)
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(
+                                            imageVector = Icons.AutoMirrored.Filled.VolumeUp,
+                                            contentDescription = "Audio Live",
+                                            tint = NeonCyan,
+                                            modifier = Modifier.size(13.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(3.dp))
+                                        Text("LIVE", color = NeonCyan, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                                    }
+                                }
 
                                 // Host Desk & Executive Chair (Seat 0)
                                 val hostSeat = seats[0]
@@ -356,7 +399,8 @@ fun GuestRoomSeatingScreen(
                                             horizontalArrangement = Arrangement.SpaceBetween,
                                             verticalAlignment = Alignment.CenterVertically
                                         ) {
-                                            Text(text = "🌿", fontSize = 11.sp)
+                                            Text(text = "🎙️", fontSize = 11.sp)
+                                            Text(text = "Host Sitara", color = Color.White, fontSize = 9.sp, fontWeight = FontWeight.Bold)
                                             // Document paper on desk
                                             Box(
                                                 modifier = Modifier
@@ -377,8 +421,25 @@ fun GuestRoomSeatingScreen(
                                     )
                                 }
 
-                                // Right Corner Potted Plant
-                                PottedPlantIcon()
+                                // Right Stage Audience Count Pill
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(Color(0xFF132242))
+                                        .border(1.dp, Color(0xFF243B6B), RoundedCornerShape(8.dp))
+                                        .padding(horizontal = 6.dp, vertical = 4.dp)
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(
+                                            imageVector = Icons.Default.Person,
+                                            contentDescription = "Audience",
+                                            tint = NeonPink,
+                                            modifier = Modifier.size(13.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(3.dp))
+                                        Text("348", color = Color.White, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                                    }
+                                }
                             }
 
                             Spacer(modifier = Modifier.height(14.dp))
@@ -488,7 +549,7 @@ fun GuestRoomSeatingScreen(
                         .clip(CircleShape)
                         .background(NeonPink)
                 ) {
-                    Icon(imageVector = Icons.Default.Send, contentDescription = "Send", tint = Color.White, modifier = Modifier.size(16.dp))
+                    Icon(imageVector = Icons.AutoMirrored.Filled.Send, contentDescription = "Send", tint = Color.White, modifier = Modifier.size(16.dp))
                 }
 
                 Spacer(modifier = Modifier.width(6.dp))
@@ -824,7 +885,7 @@ fun GuestRoomSeatingScreen(
     }
 }
 
-// Visual Chair Widget matching the dark navy armchairs in the screenshot
+// Visual Chair Widget matching the dark navy armchairs with clear Join affordance
 @Composable
 private fun ChairWidget(
     seat: RoomSeat,
@@ -838,15 +899,15 @@ private fun ChairWidget(
             .scale(scaleModifier),
         contentAlignment = Alignment.Center
     ) {
-        // Chair Armchair Shape (Dark Navy with rounded backrest)
+        // Chair Armchair Shape
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .clip(RoundedCornerShape(8.dp))
-                .background(Color(0xFF132242))
+                .background(if (seat.isOccupied) Color(0xFF132242) else Color(0xFF0F1E38))
                 .border(
-                    width = if (isSpeaking) 2.dp else 1.dp,
-                    color = if (isSpeaking) Color(0xFF00C896) else Color(0xFF2A4275),
+                    width = if (isSpeaking) 2.dp else if (!seat.isOccupied) 1.5.dp else 1.dp,
+                    color = if (isSpeaking) Color(0xFF00FF88) else if (!seat.isOccupied) Color(0xFF00C896) else Color(0xFF2A4275),
                     shape = RoundedCornerShape(8.dp)
                 ),
             contentAlignment = Alignment.Center
@@ -858,13 +919,24 @@ private fun ChairWidget(
                     fontSize = if (isHost) 20.sp else 16.sp
                 )
             } else {
-                // Empty chair silhouette
-                Box(
-                    modifier = Modifier
-                        .size(16.dp)
-                        .clip(CircleShape)
-                        .background(Color(0x33FFFFFF))
-                )
+                // Clear, glowing "+ JOIN" button icon (never an ambiguous circle)
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = "Take Seat",
+                        tint = Color(0xFF00FF88),
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Text(
+                        text = "JOIN",
+                        color = Color(0xFF00FF88),
+                        fontSize = 8.sp,
+                        fontWeight = FontWeight.Black
+                    )
+                }
             }
         }
 
@@ -897,7 +969,7 @@ private fun GuestSeatRowItem(
         ChairWidget(seat = seat, isSpeaking = seat.isSpeaking)
         Spacer(modifier = Modifier.height(2.dp))
         SeatLabelPill(
-            text = seat.occupantName ?: seat.label,
+            text = if (seat.isOccupied) (seat.occupantName ?: seat.label) else "+ Seat ${seat.seatIndex}",
             isHost = false,
             isOccupied = seat.isOccupied
         )
@@ -916,36 +988,22 @@ private fun SeatLabelPill(
             .width(66.dp)
             .height(18.dp)
             .clip(RoundedCornerShape(9.dp))
-            .background(if (isHost) Color(0xFF132242) else Color(0xFF008E8A))
+            .background(if (isHost) Color(0xFF132242) else if (isOccupied) Color(0xFF008E8A) else Color(0xFF0C2438))
             .border(
                 width = 0.5.dp,
-                color = if (isHost) Color(0xFF2A4275) else Color(0xFF00BFA5),
+                color = if (isHost) Color(0xFF2A4275) else if (isOccupied) Color(0xFF00BFA5) else Color(0xFF00C896),
                 shape = RoundedCornerShape(9.dp)
             ),
         contentAlignment = Alignment.Center
     ) {
         Text(
             text = text,
-            color = Color.White,
-            fontSize = 9.5.sp,
+            color = if (isOccupied || isHost) Color.White else Color(0xFF00FF88),
+            fontSize = 9.sp,
             fontWeight = FontWeight.Bold,
             maxLines = 1,
             textAlign = TextAlign.Center
         )
-    }
-}
-
-// Corner Potted Plant Widget
-@Composable
-private fun PottedPlantIcon() {
-    Box(
-        modifier = Modifier
-            .size(32.dp)
-            .clip(CircleShape)
-            .background(Color(0x22132242)),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(text = "🪴", fontSize = 20.sp)
     }
 }
 

@@ -278,13 +278,15 @@ fun LiveViewerScreen(
                     modifier = Modifier
                         .size(36.dp)
                         .clip(CircleShape)
-                        .background(Color(0x80000000))
+                        .background(Color(0xCC111827))
+                        .border(1.dp, NeonAmber.copy(alpha = 0.6f), CircleShape)
                         .testTag("agora_rtc_live_button")
                 ) {
                     Icon(
                         imageVector = Icons.Default.Sensors,
                         contentDescription = "Agora Live SD-RTN",
-                        tint = NeonAmber
+                        tint = NeonAmber,
+                        modifier = Modifier.size(18.dp)
                     )
                 }
 
@@ -296,13 +298,15 @@ fun LiveViewerScreen(
                     modifier = Modifier
                         .size(36.dp)
                         .clip(CircleShape)
-                        .background(Color(0x80000000))
+                        .background(Color(0xCC111827))
+                        .border(1.dp, NeonCyan.copy(alpha = 0.6f), CircleShape)
                         .testTag("quality_settings_button")
                 ) {
                     Icon(
                         imageVector = Icons.Default.Hd,
                         contentDescription = "Video Quality",
-                        tint = NeonCyan
+                        tint = NeonCyan,
+                        modifier = Modifier.size(18.dp)
                     )
                 }
 

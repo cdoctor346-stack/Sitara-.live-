@@ -226,6 +226,19 @@ fun AgoraLiveStreamScreen(
                                         color = NeonAmber,
                                         fontSize = 12.sp
                                     )
+                                    Spacer(modifier = Modifier.height(14.dp))
+                                    Button(
+                                        onClick = {
+                                            userRole = AgoraUserRole.BROADCASTER
+                                            agoraManager.joinChannel(channelName, AgoraUserRole.BROADCASTER)
+                                        },
+                                        colors = ButtonDefaults.buttonColors(containerColor = NeonPink),
+                                        shape = RoundedCornerShape(20.dp)
+                                    ) {
+                                        Icon(imageVector = Icons.Default.Videocam, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text("Start Broadcasting Now 🎙️", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                    }
                                 }
                             }
                         }

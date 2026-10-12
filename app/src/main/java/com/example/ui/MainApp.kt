@@ -296,7 +296,8 @@ fun MainApp(
                         GuestRoomSeatingScreen(
                             coinsBalance = coinsBalance,
                             onCoinsDeducted = { cost -> repo.addCoins(-cost) },
-                            onTopUpCoins = { showTopUpDialog = true }
+                            onTopUpCoins = { showTopUpDialog = true },
+                            onNavigateBack = { currentDestination = AppDestination.DISCOVER }
                         )
                     }
 
