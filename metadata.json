@@ -1,0 +1,6 @@
+{
+  "name": "Sitara Live",
+  "description": "Real-time live streaming platform with camera broadcasting, interactive viewer chat, floating reactions, gifting, creator discovery, and live studio controls.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

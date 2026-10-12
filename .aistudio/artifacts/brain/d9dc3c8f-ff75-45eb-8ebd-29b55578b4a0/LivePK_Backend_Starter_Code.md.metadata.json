@@ -1,0 +1,5 @@
+{
+  "summary":  "Complete production-ready Node.js, Express, Socket.io, and MongoDB starter backend code for LivePK. Includes JWT and Google Auth, Agora RTC Dynamic Token generation, real-time WebSocket chat and gifts, video feed APIs, and admin management endpoints.",
+  "updatedAt":  "2026-10-10T06:38:24.700877507Z",
+  "userFacing":  true
+}
