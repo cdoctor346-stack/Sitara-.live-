@@ -26,10 +26,13 @@ jobs:
           cp .env.example .env 2>/dev/null || touch .env
         fi
 
-    - name: Create debug.keystore if missing
+    - name: Create debug and release keystores
       run: |
         if [ ! -f debug.keystore ]; then
           keytool -genkey -v -keystore debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
+        fi
+        if [ ! -f my-upload-key.jks ]; then
+          keytool -genkey -v -keystore my-upload-key.jks -storepass android -alias upload -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Sitara Live,O=Sitara,C=US"
         fi
 
     - name: Accept Android SDK licenses
@@ -41,13 +44,19 @@ jobs:
     - name: Grant execute permission for gradlew
       run: chmod +x gradlew
 
-    - name: Build Debug APK
-      run: ./gradlew assembleDebug --no-daemon --stacktrace
+    - name: Build Release and Debug APK
+      run: STORE_PASSWORD=android KEY_PASSWORD=android ./gradlew assembleRelease assembleDebug --no-daemon --stacktrace
 
-    - name: Upload Sitara Live APK
+    - name: Upload Sitara Live Release APK
       uses: actions/upload-artifact@v4
-      if: always()
       with:
-        name: Sitara-Live-APK
+        name: Sitara-Live-Release-APK-v1.1
+        path: app/build/outputs/apk/release/*.apk
+        retention-days: 30
+
+    - name: Upload Sitara Live Debug APK
+      uses: actions/upload-artifact@v4
+      with:
+        name: Sitara-Live-Debug-APK
         path: app/build/outputs/apk/debug/*.apk
         retention-days: 30
