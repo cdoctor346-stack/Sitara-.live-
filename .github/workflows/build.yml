@@ -13,19 +13,23 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Set up JDK 17
+    - name: Set up JDK 21
       uses: actions/setup-java@v4
       with:
-        java-version: '17'
+        java-version: '21'
         distribution: 'temurin'
+        cache: gradle
 
-    - name: Set up Android SDK
-      uses: android-actions/setup-android@v3
-
-    - name: Ensure env file exists
+    - name: Create .env if missing
       run: |
         if [ ! -f .env ]; then
           cp .env.example .env 2>/dev/null || touch .env
+        fi
+
+    - name: Create debug.keystore if missing
+      run: |
+        if [ ! -f debug.keystore ]; then
+          keytool -genkey -v -keystore debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
         fi
 
     - name: Grant execute permission for gradlew
