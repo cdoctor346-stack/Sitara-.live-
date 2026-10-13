@@ -1,12 +1,13 @@
 package com.example.ui.screens
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -23,22 +24,27 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
-import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CardGiftcard
-import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.GraphicEq
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.MicOff
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Sensors
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material.icons.filled.VideocamOff
+import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -62,21 +68,21 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.R
 import com.example.data.model.ChatMessage
 import com.example.data.model.GiftItem
+import com.example.ui.util.ShareHelper
 import com.example.ui.components.ActiveGiftAnimation
 import com.example.ui.components.CelebrationGiftBanner
 import com.example.ui.components.FloatingReactionsContainer
@@ -113,27 +119,18 @@ fun GuestRoomSeatingScreen(
     onNavigateBack: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    // 1 Host + 8 Guest Seats
+    val context = LocalContext.current
+    // All 8 Guest Seats initialized fresh and completely empty (old guests deleted)
     val seats = remember {
         mutableStateListOf(
-            RoomSeat(
-                seatIndex = 0,
-                label = "Host",
-                occupantName = "Host",
-                occupantAvatarRes = R.drawable.creator_moin,
-                isOccupied = true,
-                isMuted = false,
-                diamondsReceived = 0,
-                isSpeaking = true
-            ),
-            RoomSeat(seatIndex = 1, label = "Guest 1", isOccupied = false),
-            RoomSeat(seatIndex = 2, label = "Guest 2", isOccupied = false),
-            RoomSeat(seatIndex = 3, label = "Guest 3", isOccupied = false),
-            RoomSeat(seatIndex = 4, label = "Guest 4", isOccupied = false),
-            RoomSeat(seatIndex = 5, label = "Guest 5", isOccupied = false),
-            RoomSeat(seatIndex = 6, label = "Guest 6", isOccupied = false),
-            RoomSeat(seatIndex = 7, label = "Guest 7", isOccupied = false),
-            RoomSeat(seatIndex = 8, label = "Guest 8", isOccupied = false)
+            RoomSeat(seatIndex = 1, label = "Seat 1", isOccupied = false),
+            RoomSeat(seatIndex = 2, label = "Seat 2", isOccupied = false),
+            RoomSeat(seatIndex = 3, label = "Seat 3", isOccupied = false),
+            RoomSeat(seatIndex = 4, label = "Seat 4", isOccupied = false),
+            RoomSeat(seatIndex = 5, label = "Seat 5", isOccupied = false),
+            RoomSeat(seatIndex = 6, label = "Seat 6", isOccupied = false),
+            RoomSeat(seatIndex = 7, label = "Seat 7", isOccupied = false),
+            RoomSeat(seatIndex = 8, label = "Seat 8", isOccupied = false)
         )
     }
 
@@ -141,21 +138,24 @@ fun GuestRoomSeatingScreen(
     var userCurrentSeatIndex by remember { mutableStateOf<Int?>(null) }
     var isUserMuted by remember { mutableStateOf(false) }
     var showGiftDrawerForSeat by remember { mutableStateOf<RoomSeat?>(null) }
+    var isAddingNewGuestToSeat by remember { mutableStateOf(false) }
+    var customGuestNameInput by remember { mutableStateOf("") }
     var celebrationGiftText by remember { mutableStateOf<String?>(null) }
     var isEditingGuestName by remember { mutableStateOf(false) }
     var newGuestNameInput by remember { mutableStateOf("") }
     var isCameraOn by remember { mutableStateOf(false) }
     var isPkActive by remember { mutableStateOf(false) }
-    var pkScoreBlue by remember { mutableStateOf(1250) }
-    var pkScoreRed by remember { mutableStateOf(1420) }
+    var pkScoreBlue by remember { mutableStateOf(2450) }
+    var pkScoreRed by remember { mutableStateOf(1890) }
     var activeScreenWideGift by remember { mutableStateOf<ActiveGiftAnimation?>(null) }
+    var hostDiamonds by remember { mutableStateOf(42800) }
 
     // Floating reactions & Live Chat
     val particles = remember { mutableStateListOf<ReactionParticle>() }
     val chatMessages = remember {
         mutableStateListOf(
-            ChatMessage(UUID.randomUUID().toString(), "LivePK", "Welcome to the 8-Guest Audio/Video Lounge! 🎙️", isModerator = true),
-            ChatMessage(UUID.randomUUID().toString(), "Sitara Streamer", "Seats 1 through 8 are open! Tap '+ JOIN' on any chair to speak.", isStreamer = true)
+            ChatMessage(UUID.randomUUID().toString(), "LivePK", "Welcome to Sitara Live 8-Guest Room! 🎙️", isModerator = true),
+            ChatMessage(UUID.randomUUID().toString(), "Sitara Streamer", "Tap any '+' circle to sit or add a new guest!", isStreamer = true)
         )
     }
     var chatInput by remember { mutableStateOf("") }
@@ -178,354 +178,595 @@ fun GuestRoomSeatingScreen(
         label = "pulse"
     )
 
+    val speakingGlowAlpha by infiniteTransition.animateFloat(
+        initialValue = 0.4f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(tween(700, easing = LinearEasing), RepeatMode.Reverse),
+        label = "glow"
+    )
+
+    // Audio Equalizer wave height animation
+    val eqHeight1 by infiniteTransition.animateFloat(
+        initialValue = 4f, targetValue = 14f,
+        animationSpec = infiniteRepeatable(tween(350), RepeatMode.Reverse), label = "eq1"
+    )
+    val eqHeight2 by infiniteTransition.animateFloat(
+        initialValue = 12f, targetValue = 5f,
+        animationSpec = infiniteRepeatable(tween(420), RepeatMode.Reverse), label = "eq2"
+    )
+    val eqHeight3 by infiniteTransition.animateFloat(
+        initialValue = 6f, targetValue = 16f,
+        animationSpec = infiniteRepeatable(tween(300), RepeatMode.Reverse), label = "eq3"
+    )
+
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(Color(0xFF091224))
+            .background(
+                Brush.verticalGradient(
+                    listOf(
+                        Color(0xFF090A1A),
+                        Color(0xFF0C1026),
+                        Color(0xFF070B18)
+                    )
+                )
+            )
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 14.dp, vertical = 10.dp),
+                .padding(horizontal = 12.dp, vertical = 8.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Top Header: Back Button, Room Title & PK Battle Button
+            // ================= 1. TOP HEADER BAR =================
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 4.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                IconButton(
-                    onClick = onNavigateBack,
+                // Host Room Capsule (Avatar + Name + ID + Follow + Diamonds)
+                Box(
                     modifier = Modifier
-                        .size(36.dp)
-                        .clip(CircleShape)
-                        .background(Color(0x33FFFFFF))
+                        .clip(RoundedCornerShape(24.dp))
+                        .background(Color(0x551E293B))
+                        .border(1.dp, Color(0x33FFFFFF), RoundedCornerShape(24.dp))
+                        .padding(start = 3.dp, end = 10.dp, top = 3.dp, bottom = 3.dp)
                 ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Back",
-                        tint = Color.White
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Image(
+                            painter = painterResource(id = R.drawable.creator_moin),
+                            contentDescription = "Host Avatar",
+                            modifier = Modifier
+                                .size(34.dp)
+                                .clip(CircleShape)
+                                .border(1.5.dp, NeonCyan, CircleShape),
+                            contentScale = ContentScale.Crop
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Column {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    text = "Host Sitara ⭐",
+                                    color = Color.White,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    maxLines = 1
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(4.dp))
+                                        .background(NeonPink)
+                                        .padding(horizontal = 4.dp, vertical = 1.dp)
+                                ) {
+                                    Text(
+                                        text = "+",
+                                        color = Color.White,
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Black
+                                    )
+                                }
+                            }
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    text = "💎 ${(hostDiamonds / 1000f).let { String.format("%.1fk", it) }}",
+                                    color = NeonAmber,
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = "ID: 882910",
+                                    color = Color(0xFF94A3B8),
+                                    fontSize = 9.sp
+                                )
+                            }
+                        }
+                    }
                 }
 
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        text = "Sitara Live Lounge 🎙️",
-                        color = Color.White,
-                        fontSize = 17.sp,
-                        fontWeight = FontWeight.Black,
-                        letterSpacing = 0.5.sp
-                    )
-                    Text(
-                        text = "8 Guest Seats Open • Tap + to Speak",
-                        color = NeonCyan,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Medium
-                    )
-                }
-
-                Button(
-                    onClick = { isPkActive = !isPkActive },
-                    colors = ButtonDefaults.buttonColors(containerColor = if (isPkActive) Color(0xFFEF4444) else Color(0xFF7C3AED)),
-                    modifier = Modifier.height(32.dp),
-                    shape = RoundedCornerShape(16.dp),
-                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 2.dp)
+                // Top Right: Live Viewer Bubbles + PK Button + Close/Back
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    Text(if (isPkActive) "🛑 End PK" else "⚔️ PK Battle", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    // Viewer Count Capsule
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(Color(0x44000000))
+                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Default.Visibility,
+                                contentDescription = "Viewers",
+                                tint = NeonCyan,
+                                modifier = Modifier.size(13.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = "528",
+                                color = Color.White,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+
+                    // PK Battle Toggle Button
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(
+                                if (isPkActive) Brush.horizontalGradient(listOf(Color(0xFFEF4444), Color(0xFFDC2626)))
+                                else Brush.horizontalGradient(listOf(Color(0xFF7C3AED), NeonPink))
+                            )
+                            .clickable { isPkActive = !isPkActive }
+                            .padding(horizontal = 9.dp, vertical = 5.dp)
+                    ) {
+                        Text(
+                            text = if (isPkActive) "🛑 END PK" else "⚔️ PK",
+                            color = Color.White,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Black
+                        )
+                    }
+
+                    // Share Live Room & APK Button
+                    IconButton(
+                        onClick = {
+                            ShareHelper.shareLiveStream(
+                                context = context,
+                                hostName = "Host Sitara",
+                                streamTitle = "8-Guest Lounge & PK Battle",
+                                isPk = isPkActive
+                            )
+                        },
+                        modifier = Modifier
+                            .size(30.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xCC1E1B4B))
+                            .border(1.dp, NeonPink, CircleShape)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Share,
+                            contentDescription = "Share Room & APK",
+                            tint = NeonPink,
+                            modifier = Modifier.size(15.dp)
+                        )
+                    }
+
+                    // Close/Back Button
+                    IconButton(
+                        onClick = onNavigateBack,
+                        modifier = Modifier
+                            .size(30.dp)
+                            .clip(CircleShape)
+                            .background(Color(0x44000000))
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "Close",
+                            tint = Color.White,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
                 }
             }
 
-            // PK Battle Score Banner if active
+            Spacer(modifier = Modifier.height(4.dp))
+
+            // ================= 2. PK BATTLE BAR (IF ACTIVE) =================
             if (isPkActive) {
-                Spacer(modifier = Modifier.height(6.dp))
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(44.dp),
-                    shape = RoundedCornerShape(10.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFF1E1B4B)),
+                        .height(38.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFF13172E)),
                     border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF7C3AED))
                 ) {
                     Row(
                         modifier = Modifier
                             .fillMaxSize()
-                            .padding(horizontal = 12.dp),
+                            .padding(horizontal = 10.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Text("🔵 Blue: $pkScoreBlue", color = NeonCyan, fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                        Text("PK BATTLE ⚔️", color = NeonPink, fontWeight = FontWeight.Black, fontSize = 13.sp)
-                        Text("🔴 Red: $pkScoreRed", color = Color(0xFFEF4444), fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text("🔵 Blue: $pkScoreBlue", color = NeonCyan, fontWeight = FontWeight.Black, fontSize = 11.sp)
+                        }
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(NeonPink)
+                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                        ) {
+                            Text("PK 03:45", color = Color.White, fontWeight = FontWeight.Black, fontSize = 10.sp)
+                        }
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text("🔴 Red: $pkScoreRed", color = Color(0xFFEF4444), fontWeight = FontWeight.Black, fontSize = 11.sp)
+                        }
+                    }
+                }
+                Spacer(modifier = Modifier.height(4.dp))
+            }
+
+            // ================= 3. HOST LIVE BROADCAST WINDOW (ROUNDED CARD) =================
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(148.dp)
+                    .shadow(10.dp, RoundedCornerShape(16.dp)),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A)),
+                border = androidx.compose.foundation.BorderStroke(1.5.dp, Color(0x4400C896))
+            ) {
+                Box(modifier = Modifier.fillMaxSize()) {
+                    // Host Video/Cover Image
+                    Image(
+                        painter = painterResource(id = R.drawable.creator_moin),
+                        contentDescription = "Host Live Stream",
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+
+                    // Dark gradient overlay for readability
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(
+                                Brush.verticalGradient(
+                                    listOf(
+                                        Color(0x55000000),
+                                        Color(0x00000000),
+                                        Color(0x99000000)
+                                    )
+                                )
+                            )
+                    )
+
+                    // Top Left LIVE Badge inside Host Video
+                    Row(
+                        modifier = Modifier
+                            .align(Alignment.TopStart)
+                            .padding(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(Color(0xFFEF4444))
+                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(6.dp)
+                                        .clip(CircleShape)
+                                        .background(Color.White)
+                                )
+                                Spacer(modifier = Modifier.width(3.dp))
+                                Text("LIVE", color = Color.White, fontSize = 9.sp, fontWeight = FontWeight.Black)
+                            }
+                        }
+                    }
+
+                    // Bottom Bar inside Host Video (Host Name, Audio Wave Equalizer, Mic)
+                    Row(
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .fillMaxWidth()
+                            .padding(horizontal = 10.dp, vertical = 6.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            // Host Name Pill
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(Color(0x88000000))
+                                    .border(0.5.dp, Color(0x55FFFFFF), RoundedCornerShape(12.dp))
+                                    .padding(horizontal = 8.dp, vertical = 3.dp)
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text("👑 Host", color = NeonAmber, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Sitara", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.width(8.dp))
+
+                            // Equalizer Audio Wave bars
+                            Row(
+                                verticalAlignment = Alignment.Bottom,
+                                horizontalArrangement = Arrangement.spacedBy(2.dp)
+                            ) {
+                                Box(modifier = Modifier.width(3.dp).height(eqHeight1.dp).background(NeonCyan, RoundedCornerShape(1.dp)))
+                                Box(modifier = Modifier.width(3.dp).height(eqHeight2.dp).background(Color(0xFF00FF88), RoundedCornerShape(1.dp)))
+                                Box(modifier = Modifier.width(3.dp).height(eqHeight3.dp).background(NeonCyan, RoundedCornerShape(1.dp)))
+                            }
+                        }
+
+                        // Host Mic Active Indicator
+                        Box(
+                            modifier = Modifier
+                                .size(24.dp)
+                                .clip(CircleShape)
+                                .background(Color(0x8800C896)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Mic,
+                                contentDescription = "Host Mic",
+                                tint = Color.White,
+                                modifier = Modifier.size(14.dp)
+                            )
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // ================= 4. GUEST SEATS GRID (EXACTLY AS IN VIDEO) =================
+            // 8 Seats in 2 Rows of 4 Columns:
+            // Row 1: Seat 1, Seat 2, Seat 3, Seat 4
+            // Row 2: Seat 5, Seat 6, Seat 7, Seat 8
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(18.dp)),
+                colors = CardDefaults.cardColors(containerColor = Color(0x221E293B)),
+                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0x33334155))
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 6.dp, vertical = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    // Header Bar inside Seats Card: Title + Add Guest + Clear All
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 6.dp, vertical = 2.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = "🎙️ 8-GUEST SEATS",
+                                color = Color.White,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Black
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            val occupiedCount = seats.count { it.isOccupied }
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(Color(0x3300FF88))
+                                    .padding(horizontal = 6.dp, vertical = 2.dp)
+                            ) {
+                                Text(
+                                    text = "$occupiedCount/8 Joined",
+                                    color = Color(0xFF00FF88),
+                                    fontSize = 9.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            // "Add Guest" Button
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(Color(0xFF00C896))
+                                    .clickable {
+                                        // Find first empty seat
+                                        val firstEmpty = seats.firstOrNull { !it.isOccupied }
+                                        if (firstEmpty != null) {
+                                            selectedSeatForAction = firstEmpty
+                                            isAddingNewGuestToSeat = true
+                                            customGuestNameInput = ""
+                                        }
+                                    }
+                                    .padding(horizontal = 8.dp, vertical = 3.dp)
+                            ) {
+                                Text(
+                                    text = "+ Add Guest",
+                                    color = Color.White,
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+
+                            // "Delete All Guests" button
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(Color(0x44EF4444))
+                                    .border(0.5.dp, Color(0xFFEF4444), RoundedCornerShape(10.dp))
+                                    .clickable {
+                                        for (idx in seats.indices) {
+                                            seats[idx] = seats[idx].copy(
+                                                isOccupied = false,
+                                                occupantName = null,
+                                                occupantAvatarRes = null,
+                                                diamondsReceived = 0,
+                                                isSpeaking = false,
+                                                isMuted = false
+                                            )
+                                        }
+                                        userCurrentSeatIndex = null
+                                        chatMessages.add(
+                                            ChatMessage(
+                                                id = UUID.randomUUID().toString(),
+                                                senderName = "Host",
+                                                text = "🧹 All guest seats have been reset & cleared!",
+                                                isModerator = true
+                                            )
+                                        )
+                                    }
+                                    .padding(horizontal = 7.dp, vertical = 3.dp)
+                            ) {
+                                Text(
+                                    text = "🗑️ Clear All",
+                                    color = Color(0xFFFF6B6B),
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+                    }
+                    // Row 1: Seats 1..4
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceAround
+                    ) {
+                        for (i in 0..3) {
+                            val seat = seats[i]
+                            ModernGuestSeatItem(
+                                seat = seat,
+                                pulseScale = if (seat.isSpeaking) pulseScale else 1f,
+                                glowAlpha = if (seat.isSpeaking) speakingGlowAlpha else 0f,
+                                onClick = { selectedSeatForAction = seat }
+                            )
+                        }
+                    }
+
+                    // Row 2: Seats 5..8
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceAround
+                    ) {
+                        for (i in 4..7) {
+                            val seat = seats[i]
+                            ModernGuestSeatItem(
+                                seat = seat,
+                                pulseScale = if (seat.isSpeaking) pulseScale else 1f,
+                                glowAlpha = if (seat.isSpeaking) speakingGlowAlpha else 0f,
+                                onClick = { selectedSeatForAction = seat }
+                            )
+                        }
                     }
                 }
             }
 
             Spacer(modifier = Modifier.height(6.dp))
-            // Cyan decorative line
+
+            // ================= 5. LIVE CHAT STREAM OVERLAY =================
             Box(
-                modifier = Modifier
-                    .fillMaxWidth(0.85f)
-                    .height(3.dp)
-                    .background(
-                        Brush.horizontalGradient(
-                            colors = listOf(Color(0x0000C896), Color(0xFF00C896), Color(0x0000C896))
-                        )
-                    )
-            )
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            // Main Room Canvas / Architectural Seating Layout
-            Card(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth()
-                    .shadow(12.dp, RoundedCornerShape(18.dp)),
-                shape = RoundedCornerShape(18.dp),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFF0C172F)),
-                border = androidx.compose.foundation.BorderStroke(2.dp, Color(0xFF1B2F58))
             ) {
-                Box(
+                LazyColumn(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(10.dp)
+                        .padding(end = 50.dp), // Leaves room for floating reaction hearts
+                    verticalArrangement = Arrangement.Bottom,
+                    reverseLayout = true
                 ) {
-                    // Room Flooring (Warm ivory beige floor from screenshot)
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .clip(RoundedCornerShape(14.dp))
-                            .background(Color(0xFFEFE9DB))
-                            .border(1.5.dp, Color(0xFFD6CEBD), RoundedCornerShape(14.dp))
-                    ) {
-                        // Center Aisle Aisle Dashed Line with Direction Arrow pointing to entrance
-                        Canvas(modifier = Modifier.fillMaxSize()) {
-                            val centerX = size.width / 2f
-                            val startY = size.height * 0.28f
-                            val endY = size.height * 0.88f
-
-                            // Dashed aisle line
-                            drawLine(
-                                color = Color(0xFF00BFA5),
-                                start = Offset(centerX, startY),
-                                end = Offset(centerX, endY),
-                                strokeWidth = 3.dp.toPx(),
-                                pathEffect = PathEffect.dashPathEffect(floatArrayOf(15f, 15f), 0f)
-                            )
-
-                            // Arrowhead at bottom of aisle
-                            val arrowSize = 16f
-                            val arrowY = endY
-                            drawLine(
-                                color = Color(0xFF00BFA5),
-                                start = Offset(centerX - arrowSize, arrowY - arrowSize),
-                                end = Offset(centerX, arrowY),
-                                strokeWidth = 4.dp.toPx()
-                            )
-                            drawLine(
-                                color = Color(0xFF00BFA5),
-                                start = Offset(centerX + arrowSize, arrowY - arrowSize),
-                                end = Offset(centerX, arrowY),
-                                strokeWidth = 4.dp.toPx()
-                            )
-                        }
-
-                        // Room Interior Elements
-                        Column(
+                    items(chatMessages.reversed()) { msg ->
+                        Box(
                             modifier = Modifier
-                                .fillMaxSize()
-                                .padding(horizontal = 8.dp, vertical = 10.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
+                                .padding(vertical = 2.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(Color(0x660F172A))
+                                .padding(horizontal = 8.dp, vertical = 4.dp)
                         ) {
-                            // Top Stage / Desk with Host and Corner Plants
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.Top
-                            ) {
-                                // Left Stage Audio Monitor Pill
-                                Box(
-                                    modifier = Modifier
-                                        .clip(RoundedCornerShape(8.dp))
-                                        .background(Color(0xFF132242))
-                                        .border(1.dp, Color(0xFF243B6B), RoundedCornerShape(8.dp))
-                                        .padding(horizontal = 6.dp, vertical = 4.dp)
-                                ) {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Icon(
-                                            imageVector = Icons.AutoMirrored.Filled.VolumeUp,
-                                            contentDescription = "Audio Live",
-                                            tint = NeonCyan,
-                                            modifier = Modifier.size(13.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(3.dp))
-                                        Text("LIVE", color = NeonCyan, fontSize = 9.sp, fontWeight = FontWeight.Bold)
-                                    }
-                                }
-
-                                // Host Desk & Executive Chair (Seat 0)
-                                val hostSeat = seats[0]
-                                Column(
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    modifier = Modifier
-                                        .clickable { selectedSeatForAction = hostSeat }
-                                        .testTag("host_seat")
-                                ) {
-                                    // Host Executive Chair
-                                    ChairWidget(
-                                        seat = hostSeat,
-                                        isHost = true,
-                                        isSpeaking = hostSeat.isSpeaking,
-                                        scaleModifier = if (hostSeat.isSpeaking) pulseScale else 1f
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                if (msg.isStreamer) {
+                                    Text(
+                                        text = "HOST ",
+                                        color = NeonAmber,
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Black
                                     )
-
-                                    Spacer(modifier = Modifier.height(4.dp))
-
-                                    // Host Wooden Desk with Documents & Plant
-                                    Box(
-                                        modifier = Modifier
-                                            .width(130.dp)
-                                            .height(34.dp)
-                                            .clip(RoundedCornerShape(4.dp))
-                                            .background(Color(0xFF132242))
-                                            .border(1.dp, Color(0xFF243B6B), RoundedCornerShape(4.dp)),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Row(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .padding(horizontal = 10.dp),
-                                            horizontalArrangement = Arrangement.SpaceBetween,
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            Text(text = "🎙️", fontSize = 11.sp)
-                                            Text(text = "Host Sitara", color = Color.White, fontSize = 9.sp, fontWeight = FontWeight.Bold)
-                                            // Document paper on desk
-                                            Box(
-                                                modifier = Modifier
-                                                    .size(14.dp, 18.dp)
-                                                    .background(Color.White)
-                                                    .border(0.5.dp, Color.LightGray)
-                                            )
-                                        }
-                                    }
-
-                                    Spacer(modifier = Modifier.height(3.dp))
-
-                                    // "Host" Badge Pill
-                                    SeatLabelPill(
-                                        text = hostSeat.occupantName ?: "Host",
-                                        isHost = true,
-                                        isOccupied = hostSeat.isOccupied
+                                } else if (msg.isModerator) {
+                                    Text(
+                                        text = "SYS ",
+                                        color = NeonCyan,
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Black
                                     )
                                 }
-
-                                // Right Stage Audience Count Pill
-                                Box(
-                                    modifier = Modifier
-                                        .clip(RoundedCornerShape(8.dp))
-                                        .background(Color(0xFF132242))
-                                        .border(1.dp, Color(0xFF243B6B), RoundedCornerShape(8.dp))
-                                        .padding(horizontal = 6.dp, vertical = 4.dp)
-                                ) {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Icon(
-                                            imageVector = Icons.Default.Person,
-                                            contentDescription = "Audience",
-                                            tint = NeonPink,
-                                            modifier = Modifier.size(13.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(3.dp))
-                                        Text("348", color = Color.White, fontSize = 9.sp, fontWeight = FontWeight.Bold)
-                                    }
-                                }
-                            }
-
-                            Spacer(modifier = Modifier.height(14.dp))
-
-                            // 8 Guest Chairs (4 Left, 4 Right) facing center aisle
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .weight(1f),
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                // Left Column: Guest 1, Guest 2, Guest 3, Guest 4
-                                Column(
-                                    modifier = Modifier.weight(1f),
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    verticalArrangement = Arrangement.SpaceBetween
-                                ) {
-                                    for (i in 1..4) {
-                                        val seat = seats[i]
-                                        GuestSeatRowItem(
-                                            seat = seat,
-                                            onClick = { selectedSeatForAction = seat }
-                                        )
-                                    }
-                                }
-
-                                // Center Aisle Spacer
-                                Spacer(modifier = Modifier.width(36.dp))
-
-                                // Right Column: Guest 5, Guest 6, Guest 7, Guest 8
-                                Column(
-                                    modifier = Modifier.weight(1f),
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    verticalArrangement = Arrangement.SpaceBetween
-                                ) {
-                                    for (i in 5..8) {
-                                        val seat = seats[i]
-                                        GuestSeatRowItem(
-                                            seat = seat,
-                                            onClick = { selectedSeatForAction = seat }
-                                        )
-                                    }
-                                }
-                            }
-
-                            // Entrance Door at bottom
-                            Box(
-                                modifier = Modifier
-                                    .size(36.dp, 20.dp)
-                                    .border(1.5.dp, Color(0xFF1E355F), RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)),
-                                contentAlignment = Alignment.BottomCenter
-                            ) {
-                                Text(text = "🚪", fontSize = 12.sp)
+                                Text(
+                                    text = "${msg.senderName}: ",
+                                    color = if (msg.isStreamer) NeonPink else NeonCyan,
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    text = msg.text,
+                                    color = Color.White,
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Normal
+                                )
                             }
                         }
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(6.dp))
 
-            // Bottom Interactive Bar (Chat, Mic, Gift, Actions)
+            // ================= 6. BOTTOM CONTROL & ACTION BAR =================
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(vertical = 4.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Chat text input
+                // Chat input pill
                 OutlinedTextField(
                     value = chatInput,
                     onValueChange = { chatInput = it },
-                    placeholder = { Text("Chat in guest room...", color = Color(0xFF64748B), fontSize = 12.sp) },
+                    placeholder = { Text("Say something...", color = Color(0xFF64748B), fontSize = 12.sp) },
                     modifier = Modifier
                         .weight(1f)
-                        .height(46.dp),
+                        .height(44.dp),
                     singleLine = true,
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedTextColor = TextPrimary,
                         unfocusedTextColor = TextPrimary,
                         focusedBorderColor = NeonCyan,
                         unfocusedBorderColor = Color(0xFF2A3D66),
-                        focusedContainerColor = Color(0xFF0F1A34),
-                        unfocusedContainerColor = Color(0xFF0F1A34)
+                        focusedContainerColor = Color(0x880F1A34),
+                        unfocusedContainerColor = Color(0x880F1A34)
                     ),
-                    shape = RoundedCornerShape(23.dp)
+                    shape = RoundedCornerShape(22.dp)
                 )
 
                 Spacer(modifier = Modifier.width(6.dp))
@@ -545,25 +786,33 @@ fun GuestRoomSeatingScreen(
                         }
                     },
                     modifier = Modifier
-                        .size(42.dp)
+                        .size(40.dp)
                         .clip(CircleShape)
                         .background(NeonPink)
                 ) {
-                    Icon(imageVector = Icons.AutoMirrored.Filled.Send, contentDescription = "Send", tint = Color.White, modifier = Modifier.size(16.dp))
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.Send,
+                        contentDescription = "Send",
+                        tint = Color.White,
+                        modifier = Modifier.size(16.dp)
+                    )
                 }
 
                 Spacer(modifier = Modifier.width(6.dp))
 
-                // Mic toggle
+                // Mic toggle button (controls user's seat mic)
                 IconButton(
                     onClick = {
                         isUserMuted = !isUserMuted
                         userCurrentSeatIndex?.let { idx ->
-                            seats[idx] = seats[idx].copy(isMuted = isUserMuted)
+                            val sIdx = idx - 1 // 1-based index mapped to seats array
+                            if (sIdx in seats.indices) {
+                                seats[sIdx] = seats[sIdx].copy(isMuted = isUserMuted, isSpeaking = !isUserMuted)
+                            }
                         }
                     },
                     modifier = Modifier
-                        .size(42.dp)
+                        .size(40.dp)
                         .clip(CircleShape)
                         .background(if (isUserMuted) Color(0xFFEF4444) else Color(0xFF00C896))
                 ) {
@@ -577,42 +826,61 @@ fun GuestRoomSeatingScreen(
 
                 Spacer(modifier = Modifier.width(6.dp))
 
-                // Camera On/Off toggle
+                // Floating Hearts Reaction Button
                 IconButton(
                     onClick = {
-                        isCameraOn = !isCameraOn
+                        repeat(5) {
+                            particles.add(
+                                ReactionParticle(
+                                    id = System.currentTimeMillis() + it * 60,
+                                    emoji = listOf("❤️", "💖", "🔥", "✨", "💎").random(),
+                                    startXOffset = Random.nextFloat() * 80f - 40f,
+                                    swayAmount = 30f
+                                )
+                            )
+                        }
                     },
                     modifier = Modifier
-                        .size(42.dp)
+                        .size(40.dp)
                         .clip(CircleShape)
-                        .background(if (isCameraOn) Color(0xFF3B82F6) else Color(0xFF475569))
+                        .background(Color(0x44FF2A85))
+                        .border(1.dp, NeonPink, CircleShape)
                 ) {
                     Icon(
-                        imageVector = if (isCameraOn) Icons.Default.Videocam else Icons.Default.VideocamOff,
-                        contentDescription = "Camera",
-                        tint = Color.White,
-                        modifier = Modifier.size(18.dp)
+                        imageVector = Icons.Default.Favorite,
+                        contentDescription = "Like",
+                        tint = NeonPink,
+                        modifier = Modifier.size(20.dp)
                     )
                 }
 
                 Spacer(modifier = Modifier.width(6.dp))
 
-                // Gift Button
+                // Big Glowing Gift Box Button
                 IconButton(
                     onClick = {
-                        showGiftDrawerForSeat = seats[0] // Gift to host by default
+                        showGiftDrawerForSeat = seats[0] // Default target seat 1
                     },
                     modifier = Modifier
                         .size(42.dp)
                         .clip(CircleShape)
-                        .background(Brush.linearGradient(listOf(NeonPink, NeonAmber)))
+                        .background(
+                            Brush.linearGradient(
+                                listOf(NeonPink, NeonAmber, NeonCyan)
+                            )
+                        )
                 ) {
-                    Icon(imageVector = Icons.Default.CardGiftcard, contentDescription = "Gift", tint = Color.White, modifier = Modifier.size(20.dp))
+                    Icon(
+                        imageVector = Icons.Default.CardGiftcard,
+                        contentDescription = "Send Gift",
+                        tint = Color.White,
+                        modifier = Modifier.size(20.dp)
+                    )
                 }
             }
         }
 
-        // Floating Hearts & Particles
+        // Floating Hearts & Reaction Particles
         FloatingReactionsContainer(
             particles = particles,
             onParticleFinished = { id -> particles.removeAll { it.id == id } }
@@ -627,16 +895,17 @@ fun GuestRoomSeatingScreen(
                 .padding(top = 70.dp)
         )
 
-        // Seat Interaction Dialog (Sit down / Mute / Send Gift / Leave Seat)
+        // ================= 7. SEAT INTERACTION DIALOG =================
         if (selectedSeatForAction != null) {
             val seat = selectedSeatForAction!!
             AlertDialog(
                 onDismissRequest = { selectedSeatForAction = null },
                 title = {
                     Text(
-                        text = "${seat.label} Details",
+                        text = if (seat.isOccupied) "${seat.occupantName} (${seat.label})" else "Take ${seat.label}",
                         color = TextPrimary,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp
                     )
                 },
                 text = {
@@ -646,14 +915,14 @@ fun GuestRoomSeatingScreen(
                                 Text(
                                     text = "Change Guest Name",
                                     color = Color.White,
-                                    fontSize = 14.sp,
+                                    fontSize = 13.sp,
                                     fontWeight = FontWeight.Bold
                                 )
-                                Spacer(modifier = Modifier.height(8.dp))
+                                Spacer(modifier = Modifier.height(6.dp))
                                 OutlinedTextField(
                                     value = newGuestNameInput,
                                     onValueChange = { newGuestNameInput = it },
-                                    label = { Text("New Guest Name") },
+                                    label = { Text("Guest Name") },
                                     singleLine = true,
                                     colors = OutlinedTextFieldDefaults.colors(
                                         focusedBorderColor = NeonCyan,
@@ -672,9 +941,13 @@ fun GuestRoomSeatingScreen(
                                     Button(
                                         onClick = {
                                             if (newGuestNameInput.isNotBlank()) {
-                                                seats[seat.seatIndex] = seat.copy(occupantName = newGuestNameInput.trim())
+                                                val idx = seat.seatIndex - 1
+                                                if (idx in seats.indices) {
+                                                    seats[idx] = seat.copy(occupantName = newGuestNameInput.trim())
+                                                }
                                             }
                                             isEditingGuestName = false
+                                            selectedSeatForAction = null
                                         },
                                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00C896)),
                                         modifier = Modifier.weight(1f)
@@ -693,12 +966,16 @@ fun GuestRoomSeatingScreen(
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Box(
                                         modifier = Modifier
-                                            .size(44.dp)
+                                            .size(46.dp)
                                             .clip(CircleShape)
-                                            .background(Color(0xFF132242)),
+                                            .background(
+                                                Brush.linearGradient(
+                                                    listOf(NeonCyan, Color(0xFF7C3AED))
+                                                )
+                                            ),
                                         contentAlignment = Alignment.Center
                                     ) {
-                                        Text(text = "👤", fontSize = 24.sp)
+                                        Text(text = "🎙️", fontSize = 22.sp)
                                     }
                                     Spacer(modifier = Modifier.width(10.dp))
                                     Column {
@@ -709,7 +986,7 @@ fun GuestRoomSeatingScreen(
                                             fontSize = 15.sp
                                         )
                                         Text(
-                                            text = "Diamonds Received: ${seat.diamondsReceived} 💎",
+                                            text = "Received: ${seat.diamondsReceived} 💎",
                                             color = NeonAmber,
                                             fontSize = 12.sp,
                                             fontWeight = FontWeight.SemiBold
@@ -719,7 +996,6 @@ fun GuestRoomSeatingScreen(
 
                                 Spacer(modifier = Modifier.height(14.dp))
 
-                                // Action buttons
                                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                     Row(
                                         modifier = Modifier.fillMaxWidth(),
@@ -734,7 +1010,7 @@ fun GuestRoomSeatingScreen(
                                             modifier = Modifier.weight(1f),
                                             shape = RoundedCornerShape(10.dp)
                                         ) {
-                                            Text("Send Gift 🎁", fontSize = 12.sp)
+                                            Text("Send Gift 🎁", fontSize = 11.sp, fontWeight = FontWeight.Bold)
                                         }
 
                                         Button(
@@ -746,7 +1022,7 @@ fun GuestRoomSeatingScreen(
                                             modifier = Modifier.weight(1f),
                                             shape = RoundedCornerShape(10.dp)
                                         ) {
-                                            Text("Change Guest ✏️", fontSize = 12.sp)
+                                            Text("Edit Name ✏️", fontSize = 11.sp, fontWeight = FontWeight.Bold)
                                         }
                                     }
 
@@ -756,65 +1032,144 @@ fun GuestRoomSeatingScreen(
                                     ) {
                                         Button(
                                             onClick = {
-                                                seats[seat.seatIndex] = seat.copy(isMuted = !seat.isMuted)
+                                                val idx = seat.seatIndex - 1
+                                                if (idx in seats.indices) {
+                                                    seats[idx] = seat.copy(isMuted = !seat.isMuted)
+                                                }
+                                                selectedSeatForAction = null
                                             },
-                                            colors = ButtonDefaults.buttonColors(containerColor = if (seat.isMuted) Color(0xFFEF4444) else Color(0xFF2A4275)),
+                                            colors = ButtonDefaults.buttonColors(containerColor = if (seat.isMuted) Color(0xFF00C896) else Color(0xFF2A4275)),
                                             modifier = Modifier.weight(1f),
                                             shape = RoundedCornerShape(10.dp)
                                         ) {
-                                            Text(if (seat.isMuted) "Unmute 🔊" else "Mute 🔇", fontSize = 12.sp)
+                                            Text(if (seat.isMuted) "Unmute 🔊" else "Mute 🔇", fontSize = 11.sp)
                                         }
 
-                                        if (userCurrentSeatIndex == seat.seatIndex || seat.seatIndex != 0) {
-                                            Button(
-                                                onClick = {
-                                                    seats[seat.seatIndex] = seat.copy(
+                                        Button(
+                                            onClick = {
+                                                val idx = seat.seatIndex - 1
+                                                if (idx in seats.indices) {
+                                                    seats[idx] = seat.copy(
                                                         isOccupied = false,
-                                                        occupantName = null
+                                                        occupantName = null,
+                                                        isSpeaking = false
                                                     )
-                                                    if (userCurrentSeatIndex == seat.seatIndex) {
-                                                        userCurrentSeatIndex = null
-                                                    }
-                                                    selectedSeatForAction = null
-                                                },
-                                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEF4444)),
-                                                modifier = Modifier.weight(1f),
-                                                shape = RoundedCornerShape(10.dp)
-                                            ) {
-                                                Text(if (userCurrentSeatIndex == seat.seatIndex) "Leave Seat" else "Remove Guest", fontSize = 12.sp)
-                                            }
+                                                }
+                                                if (userCurrentSeatIndex == seat.seatIndex) {
+                                                    userCurrentSeatIndex = null
+                                                }
+                                                selectedSeatForAction = null
+                                            },
+                                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEF4444)),
+                                            modifier = Modifier.weight(1f),
+                                            shape = RoundedCornerShape(10.dp)
+                                        ) {
+                                            Text(if (userCurrentSeatIndex == seat.seatIndex) "Leave Seat" else "Remove", fontSize = 11.sp)
                                         }
                                     }
                                 }
                             }
                         } else {
-                            // Seat is empty: Option to sit down
+                            // Seat is empty: Options to sit down OR add a guest by name
                             Text(
-                                text = "This chair is currently empty. Would you like to take this seat and speak?",
+                                text = "Take this seat yourself or add a new guest to ${seat.label}:",
                                 color = TextSecondary,
                                 fontSize = 13.sp
                             )
-                            Spacer(modifier = Modifier.height(14.dp))
-                            Button(
-                                onClick = {
-                                    // Vacate previous seat if any
-                                    userCurrentSeatIndex?.let { prevIdx ->
-                                        seats[prevIdx] = seats[prevIdx].copy(isOccupied = false, occupantName = null)
-                                    }
-                                    // Sit on new seat
-                                    seats[seat.seatIndex] = seat.copy(
-                                        isOccupied = true,
-                                        occupantName = "You",
-                                        isSpeaking = true
-                                    )
-                                    userCurrentSeatIndex = seat.seatIndex
-                                    selectedSeatForAction = null
-                                },
-                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00C896)),
+                            Spacer(modifier = Modifier.height(10.dp))
+
+                            OutlinedTextField(
+                                value = customGuestNameInput,
+                                onValueChange = { customGuestNameInput = it },
+                                placeholder = { Text("Enter guest name (or blank for You)") },
+                                singleLine = true,
                                 modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(12.dp)
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = NeonCyan,
+                                    unfocusedBorderColor = Color(0xFF2A4275),
+                                    focusedTextColor = TextPrimary,
+                                    unfocusedTextColor = TextPrimary
+                                )
+                            )
+
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                Text("Take Seat & Speak 🎙️", color = Color.White, fontWeight = FontWeight.Bold)
+                                // "Sit Here (You)" button
+                                Button(
+                                    onClick = {
+                                        // Vacate previous seat if any
+                                        userCurrentSeatIndex?.let { prevIdx ->
+                                            val pIdx = prevIdx - 1
+                                            if (pIdx in seats.indices) {
+                                                seats[pIdx] = seats[pIdx].copy(isOccupied = false, occupantName = null, isSpeaking = false)
+                                            }
+                                        }
+                                        val assignedName = if (customGuestNameInput.isNotBlank()) customGuestNameInput.trim() else "You"
+                                        val idx = seat.seatIndex - 1
+                                        if (idx in seats.indices) {
+                                            seats[idx] = seat.copy(
+                                                isOccupied = true,
+                                                occupantName = assignedName,
+                                                isSpeaking = true,
+                                                isMuted = isUserMuted
+                                            )
+                                        }
+                                        userCurrentSeatIndex = seat.seatIndex
+                                        selectedSeatForAction = null
+                                        customGuestNameInput = ""
+
+                                        chatMessages.add(
+                                            ChatMessage(
+                                                id = UUID.randomUUID().toString(),
+                                                senderName = "LivePK",
+                                                text = "🎉 $assignedName joined ${seat.label}!",
+                                                isModerator = true
+                                            )
+                                        )
+                                    },
+                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00C896)),
+                                    modifier = Modifier.weight(1f),
+                                    shape = RoundedCornerShape(10.dp)
+                                ) {
+                                    Text("Sit as You 🎙️", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                }
+
+                                // "Add New Guest" button
+                                Button(
+                                    onClick = {
+                                        val guestName = if (customGuestNameInput.isNotBlank()) customGuestNameInput.trim() else "Guest ${seat.seatIndex}"
+                                        val idx = seat.seatIndex - 1
+                                        if (idx in seats.indices) {
+                                            seats[idx] = seat.copy(
+                                                isOccupied = true,
+                                                occupantName = guestName,
+                                                isSpeaking = false,
+                                                isMuted = false,
+                                                diamondsReceived = 100
+                                            )
+                                        }
+                                        selectedSeatForAction = null
+                                        customGuestNameInput = ""
+
+                                        chatMessages.add(
+                                            ChatMessage(
+                                                id = UUID.randomUUID().toString(),
+                                                senderName = "Host",
+                                                text = "✨ Added new guest $guestName to ${seat.label}!",
+                                                isModerator = true
+                                            )
+                                        )
+                                    },
+                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF7C3AED)),
+                                    modifier = Modifier.weight(1f),
+                                    shape = RoundedCornerShape(10.dp)
+                                ) {
+                                    Text("+ Add Guest", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                }
                             }
                         }
                     }
@@ -828,7 +1183,7 @@ fun GuestRoomSeatingScreen(
             )
         }
 
-        // Gift Drawer for sending to specific seat occupant
+        // ================= 8. GIFT DRAWER =================
         if (showGiftDrawerForSeat != null) {
             val targetSeat = showGiftDrawerForSeat!!
             GiftDrawer(
@@ -837,13 +1192,15 @@ fun GuestRoomSeatingScreen(
                 onGiftSelected = { gift ->
                     if (coinsBalance >= gift.coinCost) {
                         onCoinsDeducted(gift.coinCost)
-                        // Update target seat diamonds
-                        seats[targetSeat.seatIndex] = targetSeat.copy(
-                            diamondsReceived = targetSeat.diamondsReceived + (gift.coinCost / 2)
-                        )
+                        val idx = targetSeat.seatIndex - 1
+                        if (idx in seats.indices) {
+                            seats[idx] = targetSeat.copy(
+                                diamondsReceived = targetSeat.diamondsReceived + (gift.coinCost / 2)
+                            )
+                        }
+                        hostDiamonds += gift.coinCost / 2
                         celebrationGiftText = "You sent ${gift.name} ${gift.iconEmoji} to ${targetSeat.occupantName ?: targetSeat.label}!"
-                        
-                        // Add gift message to chat
+
                         chatMessages.add(
                             ChatMessage(
                                 id = UUID.randomUUID().toString(),
@@ -852,7 +1209,6 @@ fun GuestRoomSeatingScreen(
                             )
                         )
 
-                        // Trigger screen-wide overlay animation
                         activeScreenWideGift = ActiveGiftAnimation(
                             gift = gift,
                             senderName = "You",
@@ -885,130 +1241,178 @@ fun GuestRoomSeatingScreen(
     }
 }
 
-// Visual Chair Widget matching the dark navy armchairs with clear Join affordance
+// ===================================================================
+// MODERN GUEST SEAT ITEM (CIRCULAR SEAT WITH TEAL '+' & 'Seat X' PILL)
+// Exactly matching the video style from live broadcast apps!
+// ===================================================================
 @Composable
-private fun ChairWidget(
+private fun ModernGuestSeatItem(
     seat: RoomSeat,
-    isHost: Boolean = false,
-    isSpeaking: Boolean = false,
-    scaleModifier: Float = 1f
-) {
-    Box(
-        modifier = Modifier
-            .size(if (isHost) 48.dp else 40.dp)
-            .scale(scaleModifier),
-        contentAlignment = Alignment.Center
-    ) {
-        // Chair Armchair Shape
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .clip(RoundedCornerShape(8.dp))
-                .background(if (seat.isOccupied) Color(0xFF132242) else Color(0xFF0F1E38))
-                .border(
-                    width = if (isSpeaking) 2.dp else if (!seat.isOccupied) 1.5.dp else 1.dp,
-                    color = if (isSpeaking) Color(0xFF00FF88) else if (!seat.isOccupied) Color(0xFF00C896) else Color(0xFF2A4275),
-                    shape = RoundedCornerShape(8.dp)
-                ),
-            contentAlignment = Alignment.Center
-        ) {
-            if (seat.isOccupied) {
-                // If occupied, show avatar or initials / shield for co-host
-                Text(
-                    text = if (isHost) "👑" else if (seat.isCoHost) "🛡️" else "👤",
-                    fontSize = if (isHost) 20.sp else 16.sp
-                )
-            } else {
-                // Clear, glowing "+ JOIN" button icon (never an ambiguous circle)
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Add,
-                        contentDescription = "Take Seat",
-                        tint = Color(0xFF00FF88),
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Text(
-                        text = "JOIN",
-                        color = Color(0xFF00FF88),
-                        fontSize = 8.sp,
-                        fontWeight = FontWeight.Black
-                    )
-                }
-            }
-        }
-
-        // Speaking indicator green dot
-        if (isSpeaking) {
-            Box(
-                modifier = Modifier
-                    .size(8.dp)
-                    .clip(CircleShape)
-                    .background(Color(0xFF00FF88))
-                    .align(Alignment.TopEnd)
-            )
-        }
-    }
-}
-
-// Seat Row Item with Chair and Teal Pill Label
-@Composable
-private fun GuestSeatRowItem(
-    seat: RoomSeat,
+    pulseScale: Float,
+    glowAlpha: Float,
     onClick: () -> Unit
 ) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
             .clickable { onClick() }
-            .padding(vertical = 4.dp)
+            .padding(horizontal = 4.dp, vertical = 2.dp)
             .testTag("seat_${seat.seatIndex}")
     ) {
-        ChairWidget(seat = seat, isSpeaking = seat.isSpeaking)
-        Spacer(modifier = Modifier.height(2.dp))
-        SeatLabelPill(
-            text = if (seat.isOccupied) (seat.occupantName ?: seat.label) else "+ Seat ${seat.seatIndex}",
-            isHost = false,
-            isOccupied = seat.isOccupied
-        )
+        Box(
+            modifier = Modifier
+                .size(62.dp)
+                .scale(pulseScale),
+            contentAlignment = Alignment.Center
+        ) {
+            if (seat.isOccupied) {
+                // Animated speaking ring when guest is speaking
+                if (seat.isSpeaking) {
+                    Box(
+                        modifier = Modifier
+                            .size(62.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFF00FF88).copy(alpha = glowAlpha * 0.35f))
+                            .border(2.dp, Color(0xFF00FF88), CircleShape)
+                    )
+                }
+
+                // Occupied Avatar Disc
+                Box(
+                    modifier = Modifier
+                        .size(54.dp)
+                        .clip(CircleShape)
+                        .background(
+                            Brush.linearGradient(
+                                listOf(
+                                    Color(0xFF3B82F6),
+                                    Color(0xFF8B5CF6),
+                                    Color(0xFFEC4899)
+                                )
+                            )
+                        )
+                        .border(
+                            width = if (seat.isSpeaking) 2.dp else 1.5.dp,
+                            color = if (seat.isSpeaking) Color(0xFF00FF88) else Color(0x88FFFFFF),
+                            shape = CircleShape
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (seat.occupantAvatarRes != null) {
+                        Image(
+                            painter = painterResource(id = seat.occupantAvatarRes),
+                            contentDescription = seat.occupantName,
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .clip(CircleShape),
+                            contentScale = ContentScale.Crop
+                        )
+                    } else {
+                        Text(
+                            text = seat.occupantName?.take(1)?.uppercase() ?: "👤",
+                            color = Color.White,
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Black
+                        )
+                    }
+                }
+
+                // Top-Right Diamond Badge (e.g. 💎 520)
+                if (seat.diamondsReceived > 0) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(Color(0xCC000000))
+                            .padding(horizontal = 3.dp, vertical = 1.dp)
+                    ) {
+                        Text(
+                            text = "${seat.diamondsReceived}💎",
+                            color = NeonAmber,
+                            fontSize = 7.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+
+                // Bottom-Right Mic Indicator
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .size(18.dp)
+                        .clip(CircleShape)
+                        .background(if (seat.isMuted) Color(0xFFEF4444) else Color(0xFF00C896))
+                        .border(1.dp, Color.White, CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = if (seat.isMuted) Icons.Default.MicOff else Icons.Default.Mic,
+                        contentDescription = "Mic",
+                        tint = Color.White,
+                        modifier = Modifier.size(11.dp)
+                    )
+                }
+            } else {
+                // ================= EMPTY SEAT =================
+                // Dark glass circular seat with glowing teal/cyan border
+                // and vibrant teal '+' icon in the center (AS SHOWN IN USER VIDEO!)
+                Box(
+                    modifier = Modifier
+                        .size(54.dp)
+                        .clip(CircleShape)
+                        .background(Color(0x33101E38))
+                        .border(
+                            width = 1.5.dp,
+                            brush = Brush.linearGradient(
+                                listOf(
+                                    Color(0xFF00E5FF),
+                                    Color(0xFF00C896),
+                                    Color(0xFF00BFA5)
+                                )
+                            ),
+                            shape = CircleShape
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    // Glowing Teal '+' Icon
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = "Take Seat",
+                        tint = Color(0xFF00FF88),
+                        modifier = Modifier.size(26.dp)
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(3.dp))
+
+        // Seat Pill Label underneath (e.g., "Seat 1", "Seat 7", or Occupant Name)
+        Box(
+            modifier = Modifier
+                .width(62.dp)
+                .height(18.dp)
+                .clip(RoundedCornerShape(9.dp))
+                .background(
+                    if (seat.isOccupied) Color(0xCC1E293B)
+                    else Color(0x660B1528)
+                )
+                .border(
+                    width = 0.5.dp,
+                    color = if (seat.isOccupied) Color(0x8800E5FF) else Color(0x4400C896),
+                    shape = RoundedCornerShape(9.dp)
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = if (seat.isOccupied) (seat.occupantName ?: seat.label) else seat.label,
+                color = if (seat.isOccupied) Color.White else Color(0xFF00FF88),
+                fontSize = 9.sp,
+                fontWeight = FontWeight.Bold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                textAlign = TextAlign.Center
+            )
+        }
     }
 }
-
-// Teal / Cyan Label Pill matching the screenshot
-@Composable
-private fun SeatLabelPill(
-    text: String,
-    isHost: Boolean,
-    isOccupied: Boolean
-) {
-    Box(
-        modifier = Modifier
-            .width(66.dp)
-            .height(18.dp)
-            .clip(RoundedCornerShape(9.dp))
-            .background(if (isHost) Color(0xFF132242) else if (isOccupied) Color(0xFF008E8A) else Color(0xFF0C2438))
-            .border(
-                width = 0.5.dp,
-                color = if (isHost) Color(0xFF2A4275) else if (isOccupied) Color(0xFF00BFA5) else Color(0xFF00C896),
-                shape = RoundedCornerShape(9.dp)
-            ),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            text = text,
-            color = if (isOccupied || isHost) Color.White else Color(0xFF00FF88),
-            fontSize = 9.sp,
-            fontWeight = FontWeight.Bold,
-            maxLines = 1,
-            textAlign = TextAlign.Center
-        )
-    }
-}
-
-private fun RoomSeat(seatIndex: Int, label: String, labelText: String) = RoomSeat(
-    seatIndex = seatIndex,
-    label = label,
-    isOccupied = false
-)

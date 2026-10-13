@@ -113,3 +113,40 @@ data class PlatformStats(
     val pendingReports: Int = 4
 )
 
+enum class LiveBroadcastMode {
+    SOLO,
+    PK_BATTLE,
+    GUEST_CALL
+}
+
+data class PkBattleState(
+    val challengerName: String = "Sarah Queen 👑",
+    val challengerAvatarRes: Int = 0,
+    val blueScore: Int = 4850,
+    val redScore: Int = 3920,
+    val timeLeftSeconds: Int = 180,
+    val isBoostRound: Boolean = true,
+    val isFinished: Boolean = false,
+    val winnerSide: String? = null, // "BLUE", "RED", "DRAW"
+    val blueTopGifter: String = "Hamza_VIP",
+    val redTopGifter: String = "StarFan99"
+)
+
+data class ConnectedGuest(
+    val id: String,
+    val name: String,
+    val avatarRes: Int,
+    val isSpeaking: Boolean = false,
+    val isMuted: Boolean = false,
+    val isVideoEnabled: Boolean = true,
+    val diamondsReceived: Int = 0
+)
+
+data class GuestCallRequest(
+    val id: String,
+    val name: String,
+    val avatarRes: Int,
+    val requestType: String = "Audio", // "Audio" or "Video"
+    val timeAgo: String = "Just now"
+)
+
