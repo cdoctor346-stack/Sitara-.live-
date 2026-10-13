@@ -1,7 +1,10 @@
 package com.example.ui.util
 
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
+import android.widget.Toast
 
 object ShareHelper {
     fun shareLiveStream(
@@ -22,26 +25,54 @@ object ShareHelper {
             "📲 Download & Install Sitara Live APK: https://sitaralive.app/download"
         }
 
+        copyToClipboard(context, "Sitara Live Stream", shareMessage)
+
         val sendIntent = Intent(Intent.ACTION_SEND).apply {
             type = "text/plain"
             putExtra(Intent.EXTRA_SUBJECT, "Join $hostName on Sitara Live!")
             putExtra(Intent.EXTRA_TEXT, shareMessage)
         }
-        val chooser = Intent.createChooser(sendIntent, "Share Live Stream & APK via")
-        context.startActivity(chooser)
+        val chooser = Intent.createChooser(sendIntent, "Share Live Stream via").apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+
+        try {
+            context.startActivity(chooser)
+        } catch (e: Exception) {
+            Toast.makeText(context, "Link copied to clipboard! (Paste in WhatsApp/SMS)", Toast.LENGTH_LONG).show()
+        }
     }
 
     fun shareAppApk(context: Context) {
         val shareMessage = "✨ Sitara Live - Live PK Battles, Multi-Guest Calls & Streaming! 🌟\n\n" +
-                "Install the latest Sitara Live APK v1.1 to go live, play PK matches, and talk with friends in guest rooms!\n" +
-                "📲 Download APK: https://sitaralive.app/download"
+                "Install the latest Sitara Live APK to go live, play PK matches, and talk with friends in guest rooms!\n" +
+                "📲 Download APK: https://sitaralive.app/download\n" +
+                "🎮 Watch live streams & join voice lounges together!"
+
+        copyToClipboard(context, "Sitara Live APK Link", shareMessage)
 
         val sendIntent = Intent(Intent.ACTION_SEND).apply {
             type = "text/plain"
             putExtra(Intent.EXTRA_SUBJECT, "Download Sitara Live App APK")
             putExtra(Intent.EXTRA_TEXT, shareMessage)
         }
-        val chooser = Intent.createChooser(sendIntent, "Share Sitara Live APK with Friends")
-        context.startActivity(chooser)
+        val chooser = Intent.createChooser(sendIntent, "Share Sitara Live APK").apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+
+        try {
+            context.startActivity(chooser)
+        } catch (e: Exception) {
+            Toast.makeText(context, "APK link copied to clipboard! (Paste to share)", Toast.LENGTH_LONG).show()
+        }
+    }
+
+    private fun copyToClipboard(context: Context, label: String, text: String) {
+        try {
+            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
+            val clip = ClipData.newPlainText(label, text)
+            clipboard?.setPrimaryClip(clip)
+            Toast.makeText(context, "Link copied to clipboard! Opening share...", Toast.LENGTH_SHORT).show()
+        } catch (_: Exception) {}
     }
 }

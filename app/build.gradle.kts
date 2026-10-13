@@ -13,11 +13,15 @@ android {
   compileSdk { version = release(36) { minorApiLevel = 1 } }
 
   defaultConfig {
-    applicationId = "com.aistudio.moinlive.appz"
+    applicationId = "com.aistudio.sitaralive.stream"
     minSdk = 24
     targetSdk = 34
-    versionCode = 3
-    versionName = "1.2"
+    versionCode = 4
+    versionName = "1.3"
+
+    ndk {
+      abiFilters.addAll(listOf("armeabi-v7a", "arm64-v8a"))
+    }
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   }
@@ -67,6 +71,11 @@ android {
   dependenciesInfo {
     includeInApk = false
     includeInBundle = true
+  }
+  packaging {
+    jniLibs {
+      useLegacyPackaging = true
+    }
   }
 }
 
