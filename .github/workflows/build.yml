@@ -50,7 +50,7 @@ jobs:
     - name: Upload Sitara Live Release APK
       uses: actions/upload-artifact@v4
       with:
-        name: Sitara-Live-Release-APK-v1.2
+        name: Sitara-Live-Release-APK-v2.0
         path: app/build/outputs/apk/release/*.apk
         retention-days: 30
 

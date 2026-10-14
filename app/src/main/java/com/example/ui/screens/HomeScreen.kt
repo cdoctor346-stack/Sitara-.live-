@@ -463,6 +463,29 @@ fun HomeScreen(
                                 Text("Share APK", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                             }
                         }
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        // Real Audience Video Connect Button
+                        Button(
+                            onClick = onOpenAgoraLive,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(36.dp)
+                                .testTag("btn_real_audience_agora"),
+                            shape = RoundedCornerShape(10.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4F46E5)),
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+                        ) {
+                            Icon(Icons.Default.Sensors, contentDescription = null, tint = Color.White, modifier = Modifier.size(15.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "📡 Real Audience Live Video Room (Agora RTC)",
+                                color = Color.White,
+                                fontSize = 11.5.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
                     }
                 }
             }

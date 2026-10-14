@@ -13,11 +13,11 @@ android {
   compileSdk { version = release(36) { minorApiLevel = 1 } }
 
   defaultConfig {
-    applicationId = "com.aistudio.sitaralive.stream"
+    applicationId = "com.aistudio.sitaralive.livepk"
     minSdk = 24
     targetSdk = 34
-    versionCode = 4
-    versionName = "1.3"
+    versionCode = 5
+    versionName = "2.0"
 
     ndk {
       abiFilters.addAll(listOf("armeabi-v7a", "arm64-v8a"))
